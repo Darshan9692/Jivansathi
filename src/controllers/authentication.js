@@ -20,7 +20,6 @@ exports.register = catchAsyncErrors(async (req, res, next) => {
         db.query(sql, [name, email, pass], function (err, result) {
             if (err) {
                 console.log(err);
-                console.error(err);
                 return res.status(400).json({ error: "Unable to register user due to already existance of an email or anything else" });
             }
 
@@ -111,4 +110,28 @@ exports.logout = catchAsyncErrors(async (req, res, next) => {
         success: true,
         message: "Logged Out Successfully",
     });
+});
+
+exports.getSingleUser = catchAsyncErrors(async (req, res, next) => {
+    const { user_id } = req.params;
+    try {
+        const sql = "SELECT * FROM users WHERE user_id = ?";
+
+        db.query(sql, [user_id], function (err, result) {
+            if (err) {
+                console.log(err);
+                return res.status(401).json({ error: "Unable to fetch user" });
+            }
+            
+            if (result.length === 0) {
+                return res.status(404).json({ error: "User not found" });
+            }
+
+            return res.status(200).json({ user: result[0] });
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: "Internal Server Error" });
+    }
 });
