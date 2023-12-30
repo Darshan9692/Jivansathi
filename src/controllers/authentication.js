@@ -1,10 +1,15 @@
 const db = require('../config/connection.js');
 const bcrypt = require('bcryptjs');
 const catchAsyncErrors = require('../services/catchAsyncErrors');
+const twilio = require("twilio");
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const client = new twilio(accountSid, authToken);
+const verificationsid = process.env.VERIFYSID;
 
 // Register a user
-exports.register = catchAsyncErrors(async (req, res, next) => {
-    const { firstname, lastname, email, password } = req.body;
+exports.profile = catchAsyncErrors(async (req, res, next) => {
+    const { name, surname, email, password } = req.body;
 
     if (!email || !password) {
         return res.status(400).json({ error: "Please enter email and password" });
@@ -51,7 +56,6 @@ exports.register = catchAsyncErrors(async (req, res, next) => {
         return res.status(400).json({ error: "Unable to proceed" });
     }
 });
-
 
 // Login user
 exports.loginUser = catchAsyncErrors(async (req, res, next) => {
@@ -109,5 +113,56 @@ exports.getSingleUser = catchAsyncErrors(async (req, res, next) => {
     } catch (error) {
         console.error(error);
         return res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+exports.generateOtp = catchAsyncErrors(async (req, res, next) => {
+    try {
+        const { mobno } = req.body;
+
+        if (!mobno || mobno.length !== 10) {
+            return res.status(400).json("Please enter a valid Mobile Number");
+        }
+
+        const verification = await client.verify.v2.services(verificationsid)
+            .verifications.create({ to: `+91${mobno}`, channel: "sms" });
+
+        if (verification.status === "pending") {
+            return res.status(200).json("OTP sent successfully");
+        } else {
+            return res.status(500).json("OTP not sent");
+        }
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json("Error sending OTP");
+    }
+});
+
+exports.verifyOtp = catchAsyncErrors(async (req, res, next) => {
+    try {
+        const { phone, otp } = req.body;
+
+        if (!otp || otp.length !== 6) {
+            return res.status(400).json("Please enter a valid OTP");
+        }
+
+        if (!phone) {
+            return res.status(400).json("Please provide phone number");
+        }
+
+        const check = await client.verify.v2
+            .services(verificationsid)
+            .verificationChecks.create({ to: `+91${phone}`, code: otp });
+
+        if (check.status === 'approved') {
+            // console.log('OTP verified successfully.');
+            return res.status(200).json("Otp verified successfully");
+        } else {
+            console.log('Invalid Otp!');
+            return res.status(400).json("Invalid Otp!");
+        }
+    } catch (error) {
+        console.error(error.message);
+        return res.status(500).json("OTP not verified!!");
     }
 });

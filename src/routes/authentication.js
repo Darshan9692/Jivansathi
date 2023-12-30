@@ -1,9 +1,11 @@
 const express = require('express');
-const { register, loginUser, getSingleUser } = require('../controllers/authentication');
+const { profile, loginUser, getSingleUser, generateOtp, verifyOtp } = require('../controllers/authentication');
 
 const router = express.Router();
 
-router.route("/register").post(register);
+router.route("/generate").post(generateOtp);
+router.route("/verify").post(verifyOtp);
+router.route("/register").post(profile);
 router.route("/login").post(loginUser);
 router.route("/user/:user_id").get(getSingleUser)
 
