@@ -1,5 +1,4 @@
 const db = require('../config/connection.js');
-const bcrypt = require('bcryptjs');
 const catchAsyncErrors = require('../services/catchAsyncErrors');
 const twilio = require("twilio");
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
@@ -9,10 +8,14 @@ const verificationsid = process.env.VERIFYSID;
 
 // Register a user
 exports.profile = catchAsyncErrors(async (req, res, next) => {
-    const { name, surname, email, password } = req.body;
+    const { firstname, lastname, email, phone } = req.body;
 
-    if (!email || !password) {
-        return res.status(400).json({ error: "Please enter email and password" });
+    if (!email) {
+        return res.status(400).json({ error: "Please enter email" });
+    }
+
+    if (phone && phone.length !== 10) {
+        return res.status(400).json({ error: "Please enter valid phone number" });
     }
 
     const generateCode = () => {
@@ -24,12 +27,10 @@ exports.profile = catchAsyncErrors(async (req, res, next) => {
 
     const code = firstname && lastname && generateCode();
 
-    var pass = await bcrypt.hash(password, 10);
-
     try {
-        const sql = `INSERT INTO users (firstname, lastname, email, password_hash, code) VALUES (?, ?, ?, ?, ?)`;
+        const sql = `INSERT INTO users (firstname, lastname, email, phone, code) VALUES (?, ?, ?, ?, ?)`;
 
-        db.query(sql, [firstname, lastname, email, pass, code], function (err, result) {
+        db.query(sql, [firstname, lastname, email, phone, code], function (err, result) {
             if (err) {
                 console.log(err);
                 return res.status(400).json({ error: "Unable to register user due to an email or other issues" });
@@ -48,48 +49,13 @@ exports.profile = catchAsyncErrors(async (req, res, next) => {
 
                 const id = success[0].user_id;
 
-                res.status(201).json({ message: "User registered successfully", id });
+                res.status(201).json({ message: "Profile created successfully", id });
             });
         });
     } catch (err) {
         console.log(err);
         return res.status(400).json({ error: "Unable to proceed" });
     }
-});
-
-// Login user
-exports.loginUser = catchAsyncErrors(async (req, res, next) => {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-        return res.status(400).json({ error: "Please enter email and password" });
-    }
-
-    const sql = `SELECT * FROM users WHERE email = ?`;
-
-    db.query(sql, [email], function (err, data) {
-        if (err) {
-            console.error(err);
-            return res.status(401).json({ error: "Invalid email or password" });
-        }
-
-        if (data.length === 0) {
-            return res.status(401).json({ error: "Invalid email or password" });
-        }
-
-        const user = data[0];
-
-        const id = user.user_id;
-
-        const storedPassword = user.password_hash;
-
-        bcrypt.compare(password, storedPassword, function (err, isPasswordMatched) {
-            if (err || !isPasswordMatched) {
-                return res.status(401).json({ error: "Invalid email or password" });
-            }
-            res.status(200).json({ message: "User logged in successfully", userID: id });
-        });
-    });
 });
 
 exports.getSingleUser = catchAsyncErrors(async (req, res, next) => {
