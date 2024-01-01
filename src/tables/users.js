@@ -9,7 +9,8 @@ const createUsersTable = () => {
         phone VARCHAR(255) UNIQUE NOT NULL,
         email VARCHAR(255) UNIQUE,
         code VARCHAR(255) UNIQUE,
-        followers_count INT DEFAULT 0
+        followers_count INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `;
 

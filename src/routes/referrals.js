@@ -3,7 +3,7 @@ const { referUser } = require('../controllers/referrals');
 
 const router = express.Router();
 
-router.route("/referral/:referrerId").post(referUser);
+router.route("/referral/:refereeId").post(referUser);
 
 
 module.exports = router;

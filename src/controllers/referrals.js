@@ -6,31 +6,36 @@ const queryAsync = promisify(db.query).bind(db);
 
 exports.referUser = catchAsyncErrors(async (req, res, next) => {
     try {
-        const { referrerId } = req.params;
-        const { refereeCode } = req.body;
+        const { refereeId } = req.params;
+        const { referrerCode } = req.body;
 
-        const results = await queryAsync('SELECT user_id FROM users WHERE code = ?', [refereeCode]);
+        // Check if the referee is already part of a network
+        const existingReferral = await queryAsync('SELECT referrer_id FROM referrals WHERE referee_id = ?', [refereeId]);
+
+        if (existingReferral.length > 0) {
+            return res.status(400).json({ error: 'You are already part of other netwrok' });
+        }
+
+        // Check if the referrer code is valid
+        const results = await queryAsync('SELECT user_id FROM users WHERE code = ?', [referrerCode]);
 
         if (results.length === 0) {
             return res.status(400).json({ error: 'Invalid referral code' });
         }
 
-        const refereeId = results[0].user_id;
+        const referrerId = results[0].user_id;
 
+        // Check if the referrer already has referrals
         const hasReferrals = await queryAsync('SELECT referee_id FROM referrals WHERE referrer_id = ?', [refereeId]);
 
         if (hasReferrals.length > 0) {
             return res.status(400).json({ error: 'User has already a network' });
         }
 
-        const hasBeenUsed = await queryAsync('SELECT referrer_id FROM referrals WHERE referee_id = ?', [refereeId]);
-
-        if (hasBeenUsed.length > 0) {
-            return res.status(400).json({ error: 'Referral code has already been used' });
-        }
-
+        // Insert the new referral
         await queryAsync('INSERT INTO referrals (referrer_id, referee_id) VALUES (?, ?)', [referrerId, refereeId]);
 
+        // Update follower counts
         await updateFollowerCounts(referrerId, refereeId);
 
         res.status(201).json({ message: 'Referral created successfully' });
