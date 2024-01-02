@@ -88,6 +88,7 @@ exports.generateOtp = async (req, res, next) => {
             return res.status(400).json({ error: "Please enter a valid Mobile Number" });
         }
 
+
         const verification = await client.verify.v2.services(verificationsid)
             .verifications.create({ to: `+91${mobno}`, channel: "sms" });
 
@@ -106,6 +107,13 @@ exports.generateOtp = async (req, res, next) => {
 exports.verifyOtp = async (req, res, next) => {
     try {
         const { phone, otp } = req.body;
+        
+        const checkMobile = "SELECT firstname FROM users WHERE phone = ?";
+        const isMobileExist = await queryAsync(checkMobile, [phone]);
+
+        if (isMobileExist.length > 0) {
+            return res.status(403).json("Mobile number already exist");
+        }
 
         if (!otp || otp.length !== 6) {
             return res.status(400).json({ error: "Please enter a valid OTP" });
@@ -114,6 +122,7 @@ exports.verifyOtp = async (req, res, next) => {
         if (!phone) {
             return res.status(400).json({ error: "Please provide phone number" });
         }
+
 
         const check = await client.verify.v2.services(verificationsid)
             .verificationChecks.create({ to: `+91${phone}`, code: otp });
