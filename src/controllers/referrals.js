@@ -1,10 +1,9 @@
 const { promisify } = require('util');
 const db = require('../config/connection.js');
-const catchAsyncErrors = require('../services/catchAsyncErrors');
 
 const queryAsync = promisify(db.query).bind(db);
 
-exports.referUser = catchAsyncErrors(async (req, res, next) => {
+exports.referUser = async (req, res, next) => {
     try {
         const { refereeId } = req.params;
         const { referrerCode } = req.body;
@@ -44,7 +43,7 @@ exports.referUser = catchAsyncErrors(async (req, res, next) => {
         console.error(error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
-});
+};
 
 async function updateFollowerCounts(referrerId, refereeId) {
     await updateFollowerCount(referrerId);

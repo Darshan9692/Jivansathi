@@ -1,5 +1,4 @@
 const db = require('../config/connection.js');
-const catchAsyncErrors = require('../services/catchAsyncErrors');
 const twilio = require("twilio");
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -79,6 +78,18 @@ exports.getSingleUser = async (req, res, next) => {
     }
 };
 
+// exports.updatePhone = async (req, res, next) => {
+//     try {
+
+//         const { phone } = req.body;
+
+
+//     } catch (error) {
+//         console.error(error);
+//         return res.status(500).json({ error: "Internal Server Error" });
+//     }
+// };
+
 // Generate OTP
 exports.generateOtp = async (req, res, next) => {
     try {
@@ -107,12 +118,13 @@ exports.generateOtp = async (req, res, next) => {
 exports.verifyOtp = async (req, res, next) => {
     try {
         const { phone, otp } = req.body;
-        
+        let isMobileNumberExist = false;
+
         const checkMobile = "SELECT firstname FROM users WHERE phone = ?";
         const isMobileExist = await queryAsync(checkMobile, [phone]);
 
         if (isMobileExist.length > 0) {
-            return res.status(403).json("Mobile number already exist");
+            isMobileNumberExist = true;
         }
 
         if (!otp || otp.length !== 6) {
@@ -128,7 +140,7 @@ exports.verifyOtp = async (req, res, next) => {
             .verificationChecks.create({ to: `+91${phone}`, code: otp });
 
         if (check.status === 'approved') {
-            return res.status(200).json({ message: "OTP verified successfully" });
+            return res.status(200).json({ message: "OTP verified successfully", isMobileNumberExist });
         } else {
             return res.status(400).json({ error: "Invalid OTP" });
         }
