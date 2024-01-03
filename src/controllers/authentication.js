@@ -12,7 +12,6 @@ const queryAsync = promisify(db.query).bind(db);
 exports.profile = async (req, res, next) => {
     try {
         const { firstname, lastname, email, phone } = req.body;
-
         if (!email) {
             return res.status(400).json({ error: "Please enter email" });
         }
@@ -119,12 +118,14 @@ exports.verifyOtp = async (req, res, next) => {
     try {
         const { phone, otp } = req.body;
         let isMobileNumberExist = false;
-
-        const checkMobile = "SELECT firstname FROM users WHERE phone = ?";
+        let userId = "-1";
+        console.log(phone);
+        const checkMobile = "SELECT user_id,firstname FROM users WHERE phone = ?";
         const isMobileExist = await queryAsync(checkMobile, [phone]);
 
         if (isMobileExist.length > 0) {
             isMobileNumberExist = true;
+            userId = isMobileExist[0].user_id.toString();
         }
 
         if (!otp || otp.length !== 6) {
@@ -140,7 +141,7 @@ exports.verifyOtp = async (req, res, next) => {
             .verificationChecks.create({ to: `+91${phone}`, code: otp });
 
         if (check.status === 'approved') {
-            return res.status(200).json({ message: "OTP verified successfully", isMobileNumberExist });
+            return res.status(200).json({ message: "OTP verified successfully", isMobileNumberExist, userId });
         } else {
             return res.status(400).json({ error: "Invalid OTP" });
         }
