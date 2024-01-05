@@ -76,30 +76,8 @@ async function updateLevels(userId) {
     await queryAsync('UPDATE users SET current_level = ? WHERE user_id = ?', [level, userId]);
 }
 
-// async function updateFollowerList(userId, followerId) {
-//     const user = await queryAsync('SELECT follower_list FROM users WHERE user_id = ?', [userId]);
-//     const currentFollowerList = JSON.parse(user[0].follower_list || '[]');
-
-//     if (!currentFollowerList.includes(followerId)) {
-//         currentFollowerList.push(followerId);
-
-//         await queryAsync('UPDATE users SET follower_list = ? WHERE user_id = ?', [JSON.stringify(currentFollowerList), userId]);
-
-//         // If the user has a referrer, update the referrer's follower list as well
-//         const referrerResult = await queryAsync('SELECT referrer_id FROM referrals WHERE referee_id = ?', [userId]);
-
-//         if (referrerResult.length > 0) {
-//             const referrerId = referrerResult[0].referrer_id;
-//             await updateFollowerList(referrerId, followerId);
-//         }
-//     }
-// }
-
-
-
 async function updateFollowerCounts(referrerId, refereeId) {
     await updateFollowerCount(referrerId);
-    // await updateFollowerList(referrerId, refereeId);
     await updateLevels(referrerId);
     await findAncestors(referrerId, refereeId);
 }
@@ -133,7 +111,7 @@ exports.getAllFollowers = async (req, res, next) => {
 exports.getAllFollowers = async (req, res, next) => {
     const { user_id } = req.params;
     try {
-        const followers = await findAllFollowers(user_id);
+        const followers = await findAllFollowers(user_id, true); // Include phone for direct followers
         res.status(200).json({ followers });
     } catch (error) {
         console.error(error);
@@ -141,9 +119,15 @@ exports.getAllFollowers = async (req, res, next) => {
     }
 }
 
-async function findAllFollowers(user_id) {
+async function findAllFollowers(user_id, directUser) {
+    let selectColumns = ['users.user_id', 'users.firstname', 'users.lastname', 'users.gender', 'users.current_level', 'referrals.referred_at'];
+
+    if (directUser) {
+        selectColumns.push('users.phone'); // Include phone for direct followers
+    }
+
     const query = `
-        SELECT users.*
+        SELECT ${selectColumns.join(', ')}
         FROM users
         INNER JOIN referrals ON users.user_id = referrals.referee_id
         WHERE referrals.referrer_id = ?
@@ -156,7 +140,7 @@ async function findAllFollowers(user_id) {
     }
 
     const followerPromises = result.map(async (res) => {
-        const followers = await findAllFollowers(res.user_id);
+        const followers = await findAllFollowers(res.user_id, false); // Exclude phone for indirect followers
         return [res, ...followers];
     });
 
