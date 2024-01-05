@@ -32,21 +32,75 @@ exports.referUser = async (req, res, next) => {
         }
 
         // Insert the new referral
-        await queryAsync('INSERT INTO referrals (referrer_id, referee_id) VALUES (?, ?)', [referrerId, refereeId]);
+        await queryAsync('INSERT INTO referrals (referrer_id, referee_id,referred_at) VALUES (?, ?, NOW())', [referrerId, refereeId]);
 
         // Update follower counts
         await updateFollowerCounts(referrerId, refereeId);
 
         res.status(201).json({ message: 'Referral created successfully' });
-        
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
 
+async function updateLevels(userId) {
+    const followerCountResult = await queryAsync('SELECT followers_count FROM users WHERE user_id = ?', [userId]);
+    const followerCount = followerCountResult[0].followers_count;
+
+    let level = 'F0';
+
+    if (followerCount >= 200) {
+        level = 'F1';
+    }
+    if (followerCount >= 400) {
+        level = 'F2';
+    }
+    if (followerCount >= 800) {
+        level = 'F3';
+    }
+    if (followerCount >= 1600) {
+        level = 'F4';
+    }
+    if (followerCount >= 3200) {
+        level = 'F5';
+    }
+    if (followerCount >= 6400) {
+        level = 'F6';
+    }
+    if (followerCount >= 12800) {
+        level = 'F7';
+    }
+
+    await queryAsync('UPDATE users SET current_level = ? WHERE user_id = ?', [level, userId]);
+}
+
+// async function updateFollowerList(userId, followerId) {
+//     const user = await queryAsync('SELECT follower_list FROM users WHERE user_id = ?', [userId]);
+//     const currentFollowerList = JSON.parse(user[0].follower_list || '[]');
+
+//     if (!currentFollowerList.includes(followerId)) {
+//         currentFollowerList.push(followerId);
+
+//         await queryAsync('UPDATE users SET follower_list = ? WHERE user_id = ?', [JSON.stringify(currentFollowerList), userId]);
+
+//         // If the user has a referrer, update the referrer's follower list as well
+//         const referrerResult = await queryAsync('SELECT referrer_id FROM referrals WHERE referee_id = ?', [userId]);
+
+//         if (referrerResult.length > 0) {
+//             const referrerId = referrerResult[0].referrer_id;
+//             await updateFollowerList(referrerId, followerId);
+//         }
+//     }
+// }
+
+
+
 async function updateFollowerCounts(referrerId, refereeId) {
     await updateFollowerCount(referrerId);
+    // await updateFollowerList(referrerId, refereeId);
+    await updateLevels(referrerId);
     await findAncestors(referrerId, refereeId);
 }
 
@@ -60,6 +114,53 @@ async function findAncestors(referrerId, refereeId) {
     for (const row of results) {
         const ancestorId = row.referrer_id;
         await updateFollowerCount(ancestorId);
+        await updateLevels(ancestorId);
         await findAncestors(ancestorId, refereeId);
     }
 }
+
+exports.getAllFollowers = async (req, res, next) => {
+    const { user_id } = req.params;
+    try {
+        const followers = await findAllFollowers(user_id);
+        res.status(200).json({ followers });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+}
+
+exports.getAllFollowers = async (req, res, next) => {
+    const { user_id } = req.params;
+    try {
+        const followers = await findAllFollowers(user_id);
+        res.status(200).json({ followers });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+}
+
+async function findAllFollowers(user_id) {
+    const query = `
+        SELECT users.*
+        FROM users
+        INNER JOIN referrals ON users.user_id = referrals.referee_id
+        WHERE referrals.referrer_id = ?
+    `;
+
+    const result = await queryAsync(query, [user_id]);
+
+    if (result.length === 0) {
+        return [];
+    }
+
+    const followerPromises = result.map(async (res) => {
+        const followers = await findAllFollowers(res.user_id);
+        return [res, ...followers];
+    });
+
+    return (await Promise.all(followerPromises)).flat();
+}
+
+

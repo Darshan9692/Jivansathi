@@ -6,6 +6,7 @@ const createReferralsTable = () => {
         referral_id INT AUTO_INCREMENT PRIMARY KEY,
         referrer_id INT,
         referee_id INT,
+        referred_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (referrer_id) REFERENCES users(user_id),
         FOREIGN KEY (referee_id) REFERENCES users(user_id)
     )

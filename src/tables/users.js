@@ -8,9 +8,12 @@ const createUsersTable = () => {
         lastname VARCHAR(255) NOT NULL,
         phone VARCHAR(255) UNIQUE NOT NULL,
         email VARCHAR(255) UNIQUE,
+        gender VARCHAR(255) NOT NULL,
         code VARCHAR(255) UNIQUE,
         followers_count INT DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        follower_list TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        current_level CHAR(2) DEFAULT 'F0'
     )
   `;
 
