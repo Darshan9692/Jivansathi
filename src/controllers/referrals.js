@@ -100,17 +100,6 @@ async function findAncestors(referrerId, refereeId) {
 exports.getAllFollowers = async (req, res, next) => {
     const { user_id } = req.params;
     try {
-        const followers = await findAllFollowers(user_id);
-        res.status(200).json({ followers });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-}
-
-exports.getAllFollowers = async (req, res, next) => {
-    const { user_id } = req.params;
-    try {
         const followers = await findAllFollowers(user_id, true); // Include phone for direct followers
         res.status(200).json({ followers });
     } catch (error) {
