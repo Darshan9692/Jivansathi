@@ -100,16 +100,32 @@ async function findAncestors(referrerId, refereeId) {
 exports.getAllFollowers = async (req, res, next) => {
     const { user_id } = req.params;
     try {
-        const followers = await findAllFollowers(user_id, true); // Include phone for direct followers
-        res.status(200).json({ followers });
+        const { directFollowers, allFollowers } = await getFollowers(user_id);
+        res.status(200).json({ directFollowers, allFollowers });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 }
 
+async function getFollowers(user_id) {
+    const directFollowers = [];
+    const allFollowers = [];
+    
+    const followers = await findAllFollowers(user_id, true); // Include phone for direct followers
+
+    for (const flw of followers) {
+        if (flw.phone) {
+            directFollowers.push(flw);
+        }
+        allFollowers.push(flw);
+    }
+
+    return { directFollowers, allFollowers };
+}
+
 async function findAllFollowers(user_id, directUser) {
-    let selectColumns = ['users.user_id', 'users.firstname', 'users.lastname', 'users.gender', 'users.current_level', 'referrals.referred_at'];
+    const selectColumns = ['users.user_id', 'users.firstname', 'users.lastname', 'users.gender', 'users.current_level', 'referrals.referred_at'];
 
     if (directUser) {
         selectColumns.push('users.phone'); // Include phone for direct followers
