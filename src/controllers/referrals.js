@@ -111,7 +111,7 @@ exports.getAllFollowers = async (req, res, next) => {
 async function getFollowers(user_id) {
     const directFollowers = [];
     const allFollowers = [];
-    
+
     const followers = await findAllFollowers(user_id, true); // Include phone for direct followers
 
     for (const flw of followers) {
@@ -151,5 +151,3 @@ async function findAllFollowers(user_id, directUser) {
 
     return (await Promise.all(followerPromises)).flat();
 }
-
-
