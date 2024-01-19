@@ -10,8 +10,8 @@ const connection = mysql.createConnection({
 
 connection.connect(function (err) {
   if (err) {
-    // console.log(err);
-    return res.status(401).send({ error: "Connection is not established!!" });
+    console.log(err);
+    // return res.status(401).send({ error: "Connection is not established!!" });
   }
   console.log("Databse Connected!");
 });
