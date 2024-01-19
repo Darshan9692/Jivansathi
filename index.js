@@ -1,8 +1,8 @@
 const express = require('express');
-require('./src/config/connection');
+require('./src/config/connection.js');
 const app = express();
 require('dotenv').config();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const cors = require('cors');
 const createUser = require('./src/tables/users.js');
 const createReferrals = require('./src/tables/referrals.js');
