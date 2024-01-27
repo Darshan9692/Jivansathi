@@ -1,3 +1,4 @@
+const { error } = require('console');
 const db = require('../config/connection.js');
 const unirest = require("unirest");
 
@@ -155,8 +156,6 @@ exports.generateOtp = async (req, res, next) => {
     try {
         const { mobno } = req.body;
 
-        res.send("Hello");
-
         if (!mobno || mobno.length !== 10) {
             return res.status(400).json({ error: "Please enter a valid Mobile Number" });
         }
@@ -188,7 +187,7 @@ exports.generateOtp = async (req, res, next) => {
 
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ error: "Error sending OTP" });
+        return res.status(500).json({ error:err });
     }
 };
 
