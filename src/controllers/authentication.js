@@ -56,7 +56,7 @@ exports.profile = async (req, res, next) => {
 
         res.status(201).json({ message: "Profile created successfully", id });
     } catch (err) {
-        console.error(err);
+        console.log(err);
         return res.status(400).json({ error: "Unable to proceed" });
     }
 };
