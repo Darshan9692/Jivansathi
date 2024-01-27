@@ -183,7 +183,7 @@ exports.generateOtp = async (req, res, next) => {
         });
 
         console.log("Response from Fast2SMS:", response);
-        res.status(200).json({ message: "OTP sent successfully" });
+        res.status(200).json({ OTP });
 
     } catch (err) {
         console.error("Error sending OTP:", err);
