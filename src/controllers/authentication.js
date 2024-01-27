@@ -155,6 +155,8 @@ exports.generateOtp = async (req, res, next) => {
     try {
         const { mobno } = req.body;
 
+        res.send("Hello");
+
         if (!mobno || mobno.length !== 10) {
             return res.status(400).json({ error: "Please enter a valid Mobile Number" });
         }
