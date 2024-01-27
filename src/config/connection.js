@@ -13,7 +13,7 @@ connection.connect(function (err) {
     console.log(err);
     // return res.status(401).send({ error: "Connection is not established!!" });
   }
-  console.log("Databse Connected!");
+  console.log("Database Connected!");
 });
 
 module.exports = connection;
