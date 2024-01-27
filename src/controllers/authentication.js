@@ -162,32 +162,31 @@ exports.generateOtp = async (req, res, next) => {
 
         const OTP = Math.round(Math.random() * 10000);
 
-        var req = unirest("GET", "https://www.fast2sms.com/dev/bulkV2");
-
-        req.query({
-            "authorization": process.env.FAST_2_SMS_API_KEY,
-            "variables_values": OTP,
-            "route": "otp",
-            "numbers": mobno
+        const response = await new Promise((resolve, reject) => {
+            unirest.get("https://www.fast2sms.com/dev/bulkV2")
+                .query({
+                    "authorization": process.env.FAST_2_SMS_API_KEY,
+                    "variables_values": OTP,
+                    "route": "otp",
+                    "numbers": mobno
+                })
+                .headers({
+                    "cache-control": "no-cache"
+                })
+                .end(function (resp) {
+                    if (resp.error) {
+                        reject(resp.error);
+                    } else {
+                        resolve(resp.body);
+                    }
+                });
         });
 
-        req.headers({
-            "cache-control": "no-cache"
-        });
-
-
-        req.end(function (res) {
-            if (res.error){
-                console.log(res.error);
-            }
-        });
-
-        return res.status(500).json({ OTP });
-
+        console.log("Response from Fast2SMS:", response);
+        res.status(200).json({ message: "OTP sent successfully" });
 
     } catch (err) {
-        console.error(err);
-        return res.status(500).json({ error:err });
+        console.error("Error sending OTP:", err);
+        res.status(500).json({ error: "Failed to send OTP" });
     }
 };
-
