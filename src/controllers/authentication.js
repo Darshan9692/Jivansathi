@@ -176,10 +176,11 @@ exports.generateOtp = async (req, res, next) => {
         });
 
 
-        req.end(function (res) {
-            if (res.error){
-                console.log(res.error);
+        req.end(function (resp) {
+            if (resp.error){
+                console.log(resp.error);
             }
+            res.send("Hello");
         });
 
         return res.status(500).json({ OTP });
