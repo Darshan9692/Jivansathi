@@ -1,9 +1,5 @@
 const db = require('../config/connection.js');
-const twilio = require("twilio");
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const client = new twilio(accountSid, authToken);
-const verificationsid = process.env.VERIFYSID;
+const unirest = require("unirest");
 
 const { promisify } = require('util');
 const queryAsync = promisify(db.query).bind(db);
@@ -163,55 +159,34 @@ exports.generateOtp = async (req, res, next) => {
             return res.status(400).json({ error: "Please enter a valid Mobile Number" });
         }
 
+        const OTP = Math.round(Math.random() * 10000);
 
-        const verification = await client.verify.v2.services(verificationsid)
-            .verifications.create({ to: `+91${mobno}`, channel: "sms" });
+        var req = unirest("GET", "https://www.fast2sms.com/dev/bulkV2");
 
-        if (verification.status === "pending") {
-            return res.status(200).json({ message: "OTP sent successfully" });
-        } else {
-            return res.status(500).json({ error: "OTP not sent" });
-        }
+        req.query({
+            "authorization": process.env.FAST_2_SMS_API_KEY,
+            "variables_values": OTP,
+            "route": "otp",
+            "numbers": mobno
+        });
+
+        req.headers({
+            "cache-control": "no-cache"
+        });
+
+
+        req.end(function (res) {
+            if (res.error){
+                console.log(res.error);
+            }
+        });
+
+        return res.status(500).json({ OTP });
+
+
     } catch (err) {
         console.error(err);
         return res.status(500).json({ error: "Error sending OTP" });
     }
 };
 
-// Verify OTP
-exports.verifyOtp = async (req, res, next) => {
-    try {
-        const { phone, otp } = req.body;
-        let isMobileNumberExist = false;
-        let userId = "-1";
-        console.log(phone);
-        const checkMobile = "SELECT user_id,firstname FROM users WHERE phone = ?";
-        const isMobileExist = await queryAsync(checkMobile, [phone]);
-
-        if (isMobileExist.length > 0) {
-            isMobileNumberExist = true;
-            userId = isMobileExist[0].user_id.toString();
-        }
-
-        if (!otp || otp.length !== 6) {
-            return res.status(400).json({ error: "Please enter a valid OTP" });
-        }
-
-        if (!phone) {
-            return res.status(400).json({ error: "Please provide phone number" });
-        }
-
-
-        const check = await client.verify.v2.services(verificationsid)
-            .verificationChecks.create({ to: `+91${phone}`, code: otp });
-
-        if (check.status === 'approved') {
-            return res.status(200).json({ message: "OTP verified successfully", isMobileNumberExist, userId });
-        } else {
-            return res.status(400).json({ error: "Invalid OTP" });
-        }
-    } catch (error) {
-        console.error(error.message);
-        return res.status(500).json({ error: "OTP not verified" });
-    }
-};

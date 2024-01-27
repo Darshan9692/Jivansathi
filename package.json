@@ -21,6 +21,6 @@
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.6.5",
     "nodemon": "^3.0.2",
-    "twilio": "^4.20.1"
+    "unirest": "^0.6.0"
   }
 }
