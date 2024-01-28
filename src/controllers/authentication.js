@@ -196,7 +196,7 @@ exports.generateOtp = async (req, res, next) => {
             return res.status(400).json({ error: "Please enter a valid Mobile Number" });
         }
 
-        const OTP = Math.round(Math.random() * 10000);
+        const OTP = Math.round(Math.random() * (999999-100000) + 100000);
 
         const response = await new Promise((resolve, reject) => {
             unirest.get("https://www.fast2sms.com/dev/bulkV2")
