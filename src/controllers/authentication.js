@@ -66,7 +66,7 @@ exports.profile = async (req, res, next) => {
 exports.getSingleUser = async (req, res, next) => {
     try {
         const { user_id } = req.params;
-        const sql = "SELECT user_id, firstname, lastname, email,gender,phone,code,current_level,followers_count FROM users WHERE user_id = ?";
+        const sql = "SELECT user_id, firstname, lastname, email,gender,code,phone,current_level,followers_count FROM users WHERE user_id = ?";
         const result = await queryAsync(sql, [user_id]);
 
         if (result.length === 0) {
