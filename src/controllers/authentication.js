@@ -80,6 +80,42 @@ exports.getSingleUser = async (req, res, next) => {
     }
 };
 
+exports.getAllUsers = async (req,res,next) => {
+    try {
+        const sql = "SELECT user_id, firstname, lastname,phone, email,gender, code,current_level,followers_count FROM users";
+        const result = await queryAsync(sql);
+        if(result.length <= 0) {
+            return res.status(400).json({message: "No User Exists."});
+        }
+        return res.status(200).json(result); 
+    }catch(error) {
+        console.error(error);
+        return res.status(500).json({ error: "Internal Server Error" });
+    }
+}
+
+//Get User Existence
+exports.getUserExistence = async (req,res,next) => {
+    try {
+        const { phone } = req.body;
+        let isMobileNumberExist = false;
+        let userId = "-1";
+        console.log(phone);
+        const checkMobile = "SELECT user_id,firstname FROM users WHERE phone = ?";
+        const isMobileExist = await queryAsync(checkMobile, [phone]);
+
+        if (isMobileExist.length > 0) {
+            isMobileNumberExist = true;
+            userId = isMobileExist[0].user_id.toString();
+        } 
+
+        return res.status(200).json({isMobileNumberExist,userId});
+    }catch(error) {
+        console.error(error);
+        return res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
 // Phone number update
 exports.updatePhone = async (req, res, next) => {
     try {
