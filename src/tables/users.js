@@ -13,7 +13,9 @@ const createUsersTable = () => {
         followers_count INT DEFAULT 0,
         follower_list TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        current_level CHAR(2) DEFAULT 'F0'
+        current_level CHAR(2) DEFAULT 'F0',
+        isupivalidated BOOL,
+        upi_id VARCHAR(255) 
     )
   `;
 
