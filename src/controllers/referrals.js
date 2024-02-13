@@ -151,3 +151,45 @@ async function findAllFollowers(user_id, directUser) {
 
     return (await Promise.all(followerPromises)).flat();
 }
+
+
+exports.getMoney = async (req, res, next) => {
+    try {
+        const { user_id } = req.params;
+
+        const userExist = await queryAsync('SELECT * FROM users WHERE user_id = ? LIMIT 1', [user_id]);
+
+        if (userExist.length == 0) {
+            return res.status(404).send("User not exist");
+        }
+
+        const level = await queryAsync('SELECT current_level FROM users WHERE user_id = ? LIMIT 1', [user_id]);
+
+        if (level[0].current_level == 'F0') {
+            return res.status(401).send("You are not eligible to get money");
+        }
+
+        const transaction_date = await queryAsync('SELECT transaction_date FROM transaction WHERE user_id = ? LIMIT 1', [user_id]);
+
+        const diffInMs = new Date() - new Date(transaction_date[0].transaction_date);
+        
+        const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+
+        if (Math.floor(diffInDays) < 365) {
+            return res.status(401).send("You have just transacted money");
+        }
+
+        // Decentro Logic
+
+        if (transaction_date.length > 0) {
+            const transaction = await queryAsync('INSERT INTO transaction (user_id) VALUES (?)', [user_id]);
+        } else {
+            const transaction = await queryAsync('UPDATE transaction SET transaction_date = NOW() WHERE user_id = ?', [user_id]);
+        }
+
+        return res.status(200).send("Transaction Success");
+
+    } catch (error) {
+        console.log(error);
+    }
+}
