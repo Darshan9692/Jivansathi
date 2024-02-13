@@ -172,12 +172,13 @@ exports.getMoney = async (req, res, next) => {
         const transaction_date = await queryAsync('SELECT transaction_date FROM transaction WHERE user_id = ? LIMIT 1', [user_id]);
 
         const diffInMs = new Date() - new Date(transaction_date[0].transaction_date);
-        
+
         const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
 
         if (Math.floor(diffInDays) < 365) {
             return res.status(401).send("You have just transacted money");
         }
+
 
         // Decentro Logic
 
