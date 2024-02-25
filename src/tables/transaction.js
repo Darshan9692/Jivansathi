@@ -6,6 +6,7 @@ const createTransactionTable = () => {
         user_id INT,
         for_level VARCHAR(255), 
         transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        previous_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(user_id)
     )
   `;

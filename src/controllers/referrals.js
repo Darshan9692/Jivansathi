@@ -156,65 +156,62 @@ async function findAllFollowers(user_id, directUser) {
 
 exports.getMoney = async (req, res, next) => {
     const { user_id } = req.params;
-
+    const money = {
+        "F1": 100, "F2": 200, "F3": 400, "F4": 600, "F5": 800, "F6": 1000, "F7": 1200
+    };
     try {
         const userExist = await queryAsync('SELECT * FROM users WHERE user_id = ? LIMIT 1', [user_id]);
+        if (userExist.length === 0) return res.status(404).send("User not exist");
 
-        if (userExist.length === 0) {
-            return res.status(404).send("User not exist");
-        }
-
-        const level = await queryAsync('SELECT current_level FROM users WHERE user_id = ? LIMIT 1', [user_id]);
-        const currentLevel = level[0].current_level;
-
-        if (currentLevel === 'F0') {
-            return res.status(401).send("You are not eligible to get money");
-        }
+        const level = (await queryAsync('SELECT current_level FROM users WHERE user_id = ? LIMIT 1', [user_id]))[0].current_level;
+        if (level === 'F0') return res.status(401).send("You are not eligible to get money");
 
         const transactionExist = await queryAsync('SELECT * FROM transaction WHERE user_id = ? LIMIT 1', [user_id]);
 
         if (transactionExist.length === 0) {
-            await queryAsync('INSERT INTO transaction (user_id, for_level, transaction_date) VALUES (?, ?, NOW())', [user_id, currentLevel]);
+            await sendMoney(money[level]);
+            await queryAsync('INSERT INTO transaction (user_id, for_level, transaction_date, previous_date) VALUES (?, ?, NOW(), NOW())', [user_id, level]);
         } 
+        
         else {
             const diffInMs = new Date() - new Date(transactionExist[0].transaction_date);
             const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
 
+            
+
             if (Math.abs(Math.floor(diffInDays)) <= 365) {
-                if (!transactionExist[0].for_level.includes(currentLevel)) {
-                    const newLevels = `${transactionExist[0].for_level},${currentLevel}`;
+                if (!transactionExist[0].for_level.includes(level)) {
+                    const newLevels = `${transactionExist[0].for_level},${level}`;
                     await queryAsync('UPDATE transaction SET for_level = ? WHERE user_id = ?', [newLevels, user_id]);
                 }
             } else {
-                const levels = transactionExist[0].for_level.split(",");
-                const latestLevel = levels[levels.length - 1];
+                const latestLevel = transactionExist[0].for_level.split(",").pop();
                 await queryAsync('UPDATE transaction SET for_level = ?, transaction_date = NOW() WHERE user_id = ?', [latestLevel, user_id]);
             }
+        }
+
+        if (transactionExist.length > 0) {
+            const diffInMs = new Date() - new Date(transactionExist[0].previous_date);
+            const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+
+            if (Math.abs(Math.floor(diffInDays)) < 1) return res.status(401).send("You can not collect money");
+
+            var total_money = 0;
+            const levels = (await queryAsync('SELECT * FROM transaction WHERE user_id = ? LIMIT 1', [user_id]))[0].for_level.split(",");
+
+            levels.forEach(e => {
+                total_money += money[e];
+            });
+
+            await sendMoney(total_money);
+            await queryAsync('UPDATE transaction SET previous_date = NOW() WHERE user_id = ?', [user_id]);
         }
     } catch (error) {
         console.log("Error:", error);
         return res.status(500).send("Internal Server Error");
     }
 }
-// const transaction_date = await queryAsync('SELECT transaction_date FROM transaction WHERE user_id = ? LIMIT 1', [user_id]);
 
-// if (userExist[0].current_level == "F1") money_to_pay = 100;
-// if (userExist[0].current_level == "F2") money_to_pay = 200;
-// if (userExist[0].current_level == "F3") money_to_pay = 400;
-// if (userExist[0].current_level == "F4") money_to_pay = 600;
-// if (userExist[0].current_level == "F5") money_to_pay = 800;
-// if (userExist[0].current_level == "F6") money_to_pay = 1000;
-// if (userExist[0].current_level == "F7") money_to_pay = 1200;
-
-// await sendMoney(money_to_pay);
-
-// if (transaction_date.length == 0) {
-//     const transaction = await queryAsync('INSERT INTO transaction (user_id) VALUES (?)', [user_id]);
-// } else {
-//     const transaction = await queryAsync('UPDATE transaction SET transaction_date = NOW() WHERE user_id = ?', [user_id]);
-// }
-
-// return res.status(200).send("Transaction Success");
 
 async function sendMoney(transaction) {
     const value = Math.floor(Math.random() * 10000000) + 1;
@@ -247,4 +244,4 @@ async function sendMoney(transaction) {
         .catch(error => {
             console.error('Error:', error.response.data);
         });
-}
+}   
