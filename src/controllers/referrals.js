@@ -1,5 +1,6 @@
 const { promisify } = require('util');
 const db = require('../config/connection.js');
+const axios = require("axios")
 
 const queryAsync = promisify(db.query).bind(db);
 
@@ -154,43 +155,96 @@ async function findAllFollowers(user_id, directUser) {
 
 
 exports.getMoney = async (req, res, next) => {
-    try {
-        const { user_id } = req.params;
+    const { user_id } = req.params;
 
+    try {
         const userExist = await queryAsync('SELECT * FROM users WHERE user_id = ? LIMIT 1', [user_id]);
 
-        if (userExist.length == 0) {
+        if (userExist.length === 0) {
             return res.status(404).send("User not exist");
         }
 
         const level = await queryAsync('SELECT current_level FROM users WHERE user_id = ? LIMIT 1', [user_id]);
+        const currentLevel = level[0].current_level;
 
-        if (level[0].current_level == 'F0') {
+        if (currentLevel === 'F0') {
             return res.status(401).send("You are not eligible to get money");
         }
 
-        const transaction_date = await queryAsync('SELECT transaction_date FROM transaction WHERE user_id = ? LIMIT 1', [user_id]);
+        const transactionExist = await queryAsync('SELECT * FROM transaction WHERE user_id = ? LIMIT 1', [user_id]);
 
-        const diffInMs = new Date() - new Date(transaction_date[0].transaction_date);
+        if (transactionExist.length === 0) {
+            await queryAsync('INSERT INTO transaction (user_id, for_level, transaction_date) VALUES (?, ?, NOW())', [user_id, currentLevel]);
+        } 
+        else {
+            const diffInMs = new Date() - new Date(transactionExist[0].transaction_date);
+            const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
 
-        const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
-
-        if (Math.floor(diffInDays) < 365) {
-            return res.status(401).send("You have just transacted money");
+            if (Math.abs(Math.floor(diffInDays)) <= 365) {
+                if (!transactionExist[0].for_level.includes(currentLevel)) {
+                    const newLevels = `${transactionExist[0].for_level},${currentLevel}`;
+                    await queryAsync('UPDATE transaction SET for_level = ? WHERE user_id = ?', [newLevels, user_id]);
+                }
+            } else {
+                const levels = transactionExist[0].for_level.split(",");
+                const latestLevel = levels[levels.length - 1];
+                await queryAsync('UPDATE transaction SET for_level = ?, transaction_date = NOW() WHERE user_id = ?', [latestLevel, user_id]);
+            }
         }
-
-
-        // Decentro Logic
-
-        if (transaction_date.length > 0) {
-            const transaction = await queryAsync('INSERT INTO transaction (user_id) VALUES (?)', [user_id]);
-        } else {
-            const transaction = await queryAsync('UPDATE transaction SET transaction_date = NOW() WHERE user_id = ?', [user_id]);
-        }
-
-        return res.status(200).send("Transaction Success");
-
     } catch (error) {
-        console.log(error);
+        console.log("Error:", error);
+        return res.status(500).send("Internal Server Error");
     }
+}
+// const transaction_date = await queryAsync('SELECT transaction_date FROM transaction WHERE user_id = ? LIMIT 1', [user_id]);
+
+// if (userExist[0].current_level == "F1") money_to_pay = 100;
+// if (userExist[0].current_level == "F2") money_to_pay = 200;
+// if (userExist[0].current_level == "F3") money_to_pay = 400;
+// if (userExist[0].current_level == "F4") money_to_pay = 600;
+// if (userExist[0].current_level == "F5") money_to_pay = 800;
+// if (userExist[0].current_level == "F6") money_to_pay = 1000;
+// if (userExist[0].current_level == "F7") money_to_pay = 1200;
+
+// await sendMoney(money_to_pay);
+
+// if (transaction_date.length == 0) {
+//     const transaction = await queryAsync('INSERT INTO transaction (user_id) VALUES (?)', [user_id]);
+// } else {
+//     const transaction = await queryAsync('UPDATE transaction SET transaction_date = NOW() WHERE user_id = ?', [user_id]);
+// }
+
+// return res.status(200).send("Transaction Success");
+
+async function sendMoney(transaction) {
+    const value = Math.floor(Math.random() * 10000000) + 1;
+    const requestData = {
+        beneficiary_details: {
+            payee_name: 'Lalbhai Panchal'
+        },
+        reference_id: value.toString(),
+        purpose_message: 'Reward for achievement',
+        to_account: '462515863339635634',
+        // to_upi:''
+        transfer_amount: transaction.toString(),
+        from_account: '462515473316057755',
+        transfer_type: 'NEFT'
+    };
+
+    const headers = {
+        'accept': 'application/json',
+        'client_id': process.env.DECENTRO_CLIENT_ID,
+        'client_secret': process.env.DECENTRO_CLIENT_SECRET,
+        'content-type': 'application/json',
+        'module_secret': process.env.DECENTRO_MODULE_SECRET,
+        'provider_secret': process.env.DECENTRO_PROVIDER_SECRET,
+    };
+
+    axios.post('https://in.staging.decentro.tech/core_banking/money_transfer/initiate', requestData, { headers })
+        .then(response => {
+            console.log('Response:', response.data);
+        })
+        .catch(error => {
+            console.error('Error:', error.response.data);
+        });
 }
