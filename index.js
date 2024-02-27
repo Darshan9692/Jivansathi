@@ -7,7 +7,6 @@ const cors = require('cors');
 const createUser = require('./src/tables/users.js');
 const createReferrals = require('./src/tables/referrals.js');
 const createErrorsTable = require('./src/tables/errors.js');
-const createPaymentTable = require('./src/tables/payment.js');
 const createTransactionTable = require('./src/tables/transaction.js');
 
 const authentication = require('./src/routes/authentication.js');
@@ -43,7 +42,6 @@ app.listen(PORT, () => {
     createUser();
     createReferrals();
     createErrorsTable();
-    createPaymentTable();
     createTransactionTable();
 })
 

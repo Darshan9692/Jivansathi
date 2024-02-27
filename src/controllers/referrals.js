@@ -163,21 +163,23 @@ exports.getMoney = async (req, res, next) => {
         const userExist = await queryAsync('SELECT * FROM users WHERE user_id = ? LIMIT 1', [user_id]);
         if (userExist.length === 0) return res.status(404).send("User not exist");
 
+        const { firstname, upi_id } = userExist[0];
+
         const level = (await queryAsync('SELECT current_level FROM users WHERE user_id = ? LIMIT 1', [user_id]))[0].current_level;
         if (level === 'F0') return res.status(401).send("You are not eligible to get money");
 
         const transactionExist = await queryAsync('SELECT * FROM transaction WHERE user_id = ? LIMIT 1', [user_id]);
 
         if (transactionExist.length === 0) {
-            await sendMoney(money[level]);
+            await sendMoney(money[level], user, upi);
             await queryAsync('INSERT INTO transaction (user_id, for_level, transaction_date, previous_date) VALUES (?, ?, NOW(), NOW())', [user_id, level]);
-        } 
-        
+        }
+
         else {
             const diffInMs = new Date() - new Date(transactionExist[0].transaction_date);
             const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
 
-            
+
 
             if (Math.abs(Math.floor(diffInDays)) <= 365) {
                 if (!transactionExist[0].for_level.includes(level)) {
@@ -203,7 +205,7 @@ exports.getMoney = async (req, res, next) => {
                 total_money += money[e];
             });
 
-            await sendMoney(total_money);
+            await sendMoney(total_money, user, upi);
             await queryAsync('UPDATE transaction SET previous_date = NOW() WHERE user_id = ?', [user_id]);
         }
     } catch (error) {
@@ -213,35 +215,36 @@ exports.getMoney = async (req, res, next) => {
 }
 
 
-async function sendMoney(transaction) {
-    const value = Math.floor(Math.random() * 10000000) + 1;
-    const requestData = {
-        beneficiary_details: {
-            payee_name: 'Lalbhai Panchal'
-        },
-        reference_id: value.toString(),
-        purpose_message: 'Reward for achievement',
-        to_account: '462515863339635634',
-        // to_upi:''
-        transfer_amount: transaction.toString(),
-        from_account: '462515473316057755',
-        transfer_type: 'NEFT'
-    };
-
-    const headers = {
-        'accept': 'application/json',
-        'client_id': process.env.DECENTRO_CLIENT_ID,
-        'client_secret': process.env.DECENTRO_CLIENT_SECRET,
-        'content-type': 'application/json',
-        'module_secret': process.env.DECENTRO_MODULE_SECRET,
-        'provider_secret': process.env.DECENTRO_PROVIDER_SECRET,
-    };
-
-    axios.post('https://in.staging.decentro.tech/core_banking/money_transfer/initiate', requestData, { headers })
+async function sendMoney(transaction, user, upi) {
+    axios.post(`https://payout.pe2pe.in/Pe2Pe/v2/?secret_key=${process.env.P2P_SECRET_KEY}&api_id=${process.env.P2P_API_ID}&name=${user}&upi=${upi}&amount=${transaction}&comment='Daily Money'`)
         .then(response => {
             console.log('Response:', response.data);
         })
         .catch(error => {
             console.error('Error:', error.response.data);
         });
-}   
+}
+
+exports.getAccess = async (req, res, next) => {
+    const user = "Lalbhai Panchal";
+    const upi = "darshan@axis";
+    const transaction = 2100;
+    const user_id = req.params.id;
+    const userExist = await queryAsync('SELECT * FROM users WHERE user_id = ? LIMIT 1', [user_id]);
+    if (userExist.length === 0) return res.status(404).send("User not exist");
+
+    axios.post(`https://payout.pe2pe.in/Pe2Pe/v2/?secret_key=${process.env.P2P_SECRET_KEY}&api_id=${process.env.P2P_API_ID}&name=${user}&upi=${upi}&amount=${transaction}&comment='Dashboard access'`)
+        .then(response => {
+            if (response.data.code == 200 || response.data.code == 201) {
+                queryAsync(`update users set paymentStatus = '1' where user_id = ?`, [user_id]);
+                res.status(200).send("Payment done");
+            }
+            else{
+                console.log(response.data);
+            }
+        })
+        .catch(error => {
+            console.log(error);
+            console.error('Error:', error.response.data);
+        });
+}
