@@ -14,6 +14,8 @@ const createUsersTable = () => {
         follower_list TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         current_level CHAR(2) DEFAULT 'F0',
+        transaction_id BIGINT,
+        transaction_date DATE default '2024-01-01',
         paymentStatus BOOL DEFAULT '0',
         upi_id VARCHAR(255) 
     )

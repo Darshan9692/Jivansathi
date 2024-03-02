@@ -226,25 +226,95 @@ async function sendMoney(transaction, user, upi) {
 }
 
 exports.getAccess = async (req, res, next) => {
-    const user = "Lalbhai Panchal";
-    const upi = "darshan@axis";
-    const transaction = 2100;
-    const user_id = req.params.id;
+
+    const { user_id } = req.params;
+
     const userExist = await queryAsync('SELECT * FROM users WHERE user_id = ? LIMIT 1', [user_id]);
+
     if (userExist.length === 0) return res.status(404).send("User not exist");
 
-    axios.post(`https://payout.pe2pe.in/Pe2Pe/v2/?secret_key=${process.env.P2P_SECRET_KEY}&api_id=${process.env.P2P_API_ID}&name=${user}&upi=${upi}&amount=${transaction}&comment='Dashboard access'`)
-        .then(response => {
-            if (response.data.code == 200 || response.data.code == 201) {
-                queryAsync(`update users set paymentStatus = '1' where user_id = ?`, [user_id]);
-                res.status(200).send("Payment done");
-            }
-            else{
-                console.log(response.data);
-            }
+    if (userExist[0].paymentStatus === 1) return res.status(404).send("Payment already done");
+
+    var txn_id = Math.round(Math.random() * (9999999999 - 1000000000) + 1000000000);
+
+
+    var data = JSON.stringify({
+        "key": process.env.PAYMENT_API,
+        "client_txn_id": txn_id.toString(),
+        "amount": "1",
+        "p_info": "Jivansathi",
+        "customer_name": userExist[0].firstname,
+        "customer_email": userExist[0].email,
+        "customer_mobile": userExist[0].phone,
+        "redirect_url": "http://google.com",
+    });
+
+    var config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: 'https://api.ekqr.in/api/create_order',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        data: data
+    };
+
+    await queryAsync('update users set transaction_id = ?,transaction_date = NOW() where user_id = ?', [txn_id, user_id]);
+
+    axios(config)
+        .then(function (response) {
+            return res.status(200).send(response.data.data.payment_url);
         })
-        .catch(error => {
-            console.log(error);
-            console.error('Error:', error.response.data);
+        .catch(function (error) {
+            return res.status(500).send("Unable to create order");
         });
+
+}
+
+exports.checkStatus = async (req, res, next) => {
+    const { user_id } = req.params;
+
+    const userExist = await queryAsync('SELECT * FROM users WHERE user_id = ? LIMIT 1', [user_id]);
+
+    if (userExist.length === 0) return res.status(404).send("User not exist");
+
+    const txn_date = userExist[0].transaction_date;
+    const date = new Date(txn_date);
+
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+
+    const formattedDate = `${day.toString().padStart(2, '0')}-${month.toString().padStart(2, '0')}-${year}`;
+
+    var data = JSON.stringify({
+        "key": process.env.PAYMENT_API,
+        "client_txn_id": userExist[0].transaction_id,
+        "txn_date": formattedDate
+    });
+
+    var config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: 'https://api.ekqr.in/api/check_order_status',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        data: data
+    };
+
+    axios(config)
+        .then(function (response) {
+            if (response.data.data.status === "success") {
+                queryAsync(`update users set paymentStatus = '1', upi_id = ? where user_id = ?`, [response.data.data.customer_vpa, user_id]);
+            }
+            if (response.data.data.status === "failure") {
+                return res.status(401).send("Try again");
+            }
+            return res.status(200).send(response.data);
+        })
+        .catch(function (error) {
+            return res.status(500).send("Unable check order status")
+        });
+
 }
