@@ -171,7 +171,7 @@ exports.getMoney = async (req, res, next) => {
         const transactionExist = await queryAsync('SELECT * FROM transaction WHERE user_id = ? LIMIT 1', [user_id]);
 
         if (transactionExist.length === 0) {
-            await sendMoney(money[level], user, upi);
+            const send = await sendMoney(money[level], firstname, upi_id);
             await queryAsync('INSERT INTO transaction (user_id, for_level, transaction_date, previous_date) VALUES (?, ?, NOW(), NOW())', [user_id, level]);
         }
 
@@ -205,7 +205,7 @@ exports.getMoney = async (req, res, next) => {
                 total_money += money[e];
             });
 
-            await sendMoney(total_money, user, upi);
+            await sendMoney(total_money, firstname, upi_id);
             await queryAsync('UPDATE transaction SET previous_date = NOW() WHERE user_id = ?', [user_id]);
         }
     } catch (error) {
@@ -218,10 +218,10 @@ exports.getMoney = async (req, res, next) => {
 async function sendMoney(transaction, user, upi) {
     axios.post(`https://payout.pe2pe.in/Pe2Pe/v2/?secret_key=${process.env.P2P_SECRET_KEY}&api_id=${process.env.P2P_API_ID}&name=${user}&upi=${upi}&amount=${transaction}&comment='Daily Money'`)
         .then(response => {
-            console.log('Response:', response.data);
+            return response.data;
         })
         .catch(error => {
-            console.error('Error:', error.response.data);
+            return ('Error:', error);
         });
 }
 
@@ -246,8 +246,10 @@ exports.getAccess = async (req, res, next) => {
         "customer_name": userExist[0].firstname,
         "customer_email": userExist[0].email,
         "customer_mobile": userExist[0].phone,
-        "redirect_url": "http://google.com",
+        "redirect_url": "http://jivansathi.vercel.app/api/response",
     });
+
+    console.log(data);
 
     var config = {
         method: 'post',
@@ -263,7 +265,7 @@ exports.getAccess = async (req, res, next) => {
 
     axios(config)
         .then(function (response) {
-            return res.status(200).send(response.data.data.payment_url);
+            return res.status(200).send(response.data);
         })
         .catch(function (error) {
             return res.status(500).send("Unable to create order");
@@ -308,8 +310,8 @@ exports.checkStatus = async (req, res, next) => {
             if (response.data.data.status === "success") {
                 queryAsync(`update users set paymentStatus = '1', upi_id = ? where user_id = ?`, [response.data.data.customer_vpa, user_id]);
             }
-            if (response.data.data.status === "failure") {
-                return res.status(401).send("Try again");
+            if (response.data.data.status === "failure" || response.data.data.status === "created") {
+                return res.status(401).send("Payment has not been done yet");
             }
             return res.status(200).send(response.data);
         })
@@ -317,4 +319,8 @@ exports.checkStatus = async (req, res, next) => {
             return res.status(500).send("Unable check order status")
         });
 
+}
+
+exports.getResponse = async (req, res, next) => {
+    res.send("Hello");
 }
