@@ -249,8 +249,6 @@ exports.getAccess = async (req, res, next) => {
         "redirect_url": "http://jivansathi.vercel.app/api/response",
     });
 
-    console.log(data);
-
     var config = {
         method: 'post',
         maxBodyLength: Infinity,
@@ -322,5 +320,5 @@ exports.checkStatus = async (req, res, next) => {
 }
 
 exports.getResponse = async (req, res, next) => {
-    res.send("Hello");
+    exports.checkStatus();
 }
