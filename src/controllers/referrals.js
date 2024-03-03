@@ -171,7 +171,13 @@ exports.getMoney = async (req, res, next) => {
         const transactionExist = await queryAsync('SELECT * FROM transaction WHERE user_id = ? LIMIT 1', [user_id]);
 
         if (transactionExist.length === 0) {
-            const send = await sendMoney(money[level], firstname, upi_id);
+            await axios.post(`https://payout.pe2pe.in/Pe2Pe/v2/?secret_key=${process.env.P2P_SECRET_KEY}&api_id=${process.env.P2P_API_ID}&name=${firstname}&upi=${upi_id}&amount=${money[level]}&comment='Daily Money'`)
+                .then(response => {
+                    res.status(200).send(response.data);
+                })
+                .catch(error => {
+                    res.status(401).send(error);
+                });
             await queryAsync('INSERT INTO transaction (user_id, for_level, transaction_date, previous_date) VALUES (?, ?, NOW(), NOW())', [user_id, level]);
         }
 
@@ -200,12 +206,18 @@ exports.getMoney = async (req, res, next) => {
 
             var total_money = 0;
             const levels = (await queryAsync('SELECT * FROM transaction WHERE user_id = ? LIMIT 1', [user_id]))[0].for_level.split(",");
-
+            
             levels.forEach(e => {
                 total_money += money[e];
             });
 
-            await sendMoney(total_money, firstname, upi_id);
+            await axios.post(`https://payout.pe2pe.in/Pe2Pe/v2/?secret_key=${process.env.P2P_SECRET_KEY}&api_id=${process.env.P2P_API_ID}&name=${firstname}&upi=${upi_id}&amount=${total_money}&comment='Daily Money'`)
+                .then(response => {
+                    res.status(200).send(response.data);
+                })
+                .catch(error => {
+                    res.status(401).send(error);
+                });
             await queryAsync('UPDATE transaction SET previous_date = NOW() WHERE user_id = ?', [user_id]);
         }
     } catch (error) {
@@ -214,16 +226,6 @@ exports.getMoney = async (req, res, next) => {
     }
 }
 
-
-async function sendMoney(transaction, user, upi) {
-    axios.post(`https://payout.pe2pe.in/Pe2Pe/v2/?secret_key=${process.env.P2P_SECRET_KEY}&api_id=${process.env.P2P_API_ID}&name=${user}&upi=${upi}&amount=${transaction}&comment='Daily Money'`)
-        .then(response => {
-            return response.data;
-        })
-        .catch(error => {
-            return ('Error:', error);
-        });
-}
 
 exports.getAccess = async (req, res, next) => {
 
@@ -248,6 +250,7 @@ exports.getAccess = async (req, res, next) => {
         "customer_mobile": userExist[0].phone,
         "redirect_url": "http://jivansathi.vercel.app/api/response",
     });
+
 
     var config = {
         method: 'post',
@@ -320,5 +323,5 @@ exports.checkStatus = async (req, res, next) => {
 }
 
 exports.getResponse = async (req, res, next) => {
-    exports.checkStatus();
+    res.send("Thank you for visit....!!");
 }
