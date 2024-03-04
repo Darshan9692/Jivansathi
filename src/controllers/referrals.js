@@ -266,7 +266,7 @@ exports.getAccess = async (req, res, next) => {
 
     axios(config)
         .then(function (response) {
-            return res.status(200).send(response.data.data.payment_url);
+            return res.status(200).send(response.data);
         })
         .catch(function (error) {
             return res.status(500).send("Unable to create order");
