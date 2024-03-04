@@ -314,7 +314,7 @@ exports.checkStatus = async (req, res, next) => {
             if (response.data.data.status === "failure" || response.data.data.status === "created") {
                 return res.status(401).send("Payment has not been done yet");
             }
-            return res.status(200).send(response.data.data.status);
+            return res.status(200).send(response.data);
         })
         .catch(function (error) {
             return res.status(500).send("Unable check order status")
