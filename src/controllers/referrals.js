@@ -266,7 +266,7 @@ exports.getAccess = async (req, res, next) => {
 
     axios(config)
         .then(function (response) {
-            return res.status(200).send(response.data);
+            return res.status(200).send(response.data.data.payment_url);
         })
         .catch(function (error) {
             return res.status(500).send("Unable to create order");
@@ -314,7 +314,7 @@ exports.checkStatus = async (req, res, next) => {
             if (response.data.data.status === "failure" || response.data.data.status === "created") {
                 return res.status(401).send("Payment has not been done yet");
             }
-            return res.status(200).send(response.data);
+            return res.status(200).send(response.data.data.status);
         })
         .catch(function (error) {
             return res.status(500).send("Unable check order status")
