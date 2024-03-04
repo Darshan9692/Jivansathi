@@ -13,7 +13,7 @@ exports.referUser = async (req, res, next) => {
         const existingReferral = await queryAsync('SELECT referrer_id FROM referrals WHERE referee_id = ?', [refereeId]);
 
         if (existingReferral.length > 0) {
-            return res.status(400).json({ error: 'You are already part of other netwrok' });
+            return res.status(400).json({ error: 'You are already part of other network' });
         }
 
         // Check if the referrer code is valid
@@ -266,7 +266,7 @@ exports.getAccess = async (req, res, next) => {
 
     axios(config)
         .then(function (response) {
-            return res.status(200).send(response.data);
+            return res.status(200).send(response.data.data.payment_url);
         })
         .catch(function (error) {
             return res.status(500).send("Unable to create order");
