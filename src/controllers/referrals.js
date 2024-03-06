@@ -4,6 +4,41 @@ const axios = require("axios")
 
 const queryAsync = promisify(db.query).bind(db);
 
+exports.accessPaymentDetails = async (req,res,next) => {
+    try {
+        const { name, transaction_id, from_upi } = req.body;
+        const { user_id } = req.params;
+
+        if (!name) {
+            return res.status(400).json({ error: "Please enter name." });
+        }
+        if(!transaction_id) {
+            return res.status(400).json({ error: "Please enter transaction id." });    
+        }
+        if(!from_upi) {
+            return res.status(400).json({ error: "Please enter from UPI." });    
+        }
+        const checkExistingTransaction = "SELECT * FROM payments WHERE upi_transaction_id LIKE ?";
+        const isTransactionExist = await queryAsync(checkExistingTransaction, [transaction_id]);
+
+        if (isTransactionExist.length > 0) {
+            return res.status(403).json("Duplicate Transaction ID encountered.");
+        }
+        const insertUserQuery = "INSERT INTO payments (user_id, payor_name, upi_transaction_id, from_upi_id) VALUES (?, ?, ?, ?)";
+        const result = await queryAsync(insertUserQuery, [user_id, name, transaction_id, from_upi]);
+
+        return res.status(200).json("Payment Details Recorded 1.");        
+        const updatePaymentStatus = "UPDATE users SET paymentStatus = 0 WHERE user_id = ?";
+        const resultUpdate = await queryAsync(updatePaymentStatus, [user_id]);
+
+        return res.status(200).json("Payment Details Recorded.");
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+}
+
 exports.referUser = async (req, res, next) => {
     try {
         const { refereeId } = req.params;
