@@ -8,6 +8,7 @@ const createUser = require('./src/tables/users.js');
 const createReferrals = require('./src/tables/referrals.js');
 const createErrorsTable = require('./src/tables/errors.js');
 const createTransactionTable = require('./src/tables/transaction.js');
+const createPaymentsTable = require('./src/tables/payments.js');
 
 const authentication = require('./src/routes/authentication.js');
 const referral = require('./src/routes/referrals.js');
@@ -43,5 +44,7 @@ app.listen(PORT, () => {
     createReferrals();
     createErrorsTable();
     createTransactionTable();
+    createPaymentsTable();
+
 })
 
