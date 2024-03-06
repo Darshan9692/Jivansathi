@@ -82,7 +82,7 @@ exports.getSingleUser = async (req, res, next) => {
 
 exports.getAllUsers = async (req,res,next) => {
     try {
-        const sql = "SELECT user_id, firstname, lastname,phone, email,gender, code,current_level,followers_count FROM users";
+        const sql = "SELECT user_id, firstname, lastname,phone, email,gender, code,current_level,followers_count, paymentStatus FROM users";
         const result = await queryAsync(sql);
         if(result.length <= 0) {
             return res.status(400).json({message: "No User Exists."});
