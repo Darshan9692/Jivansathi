@@ -1,6 +1,6 @@
 const { promisify } = require('util');
 const db = require('../config/connection.js');
-const axios = require("axios")
+const axios = require("axios");
 
 const queryAsync = promisify(db.query).bind(db);
 
@@ -241,7 +241,7 @@ exports.getMoney = async (req, res, next) => {
 
             var total_money = 0;
             const levels = (await queryAsync('SELECT * FROM transaction WHERE user_id = ? LIMIT 1', [user_id]))[0].for_level.split(",");
-            
+
             levels.forEach(e => {
                 total_money += money[e];
             });
@@ -262,101 +262,98 @@ exports.getMoney = async (req, res, next) => {
 }
 
 
-exports.getAccess = async (req, res, next) => {
+// exports.getAccess = async (req, res, next) => {
 
-    const { user_id } = req.params;
+//     const { user_id } = req.params;
 
-    const userExist = await queryAsync('SELECT * FROM users WHERE user_id = ? LIMIT 1', [user_id]);
+//     const userExist = await queryAsync('SELECT * FROM users WHERE user_id = ? LIMIT 1', [user_id]);
 
-    if (userExist.length === 0) return res.status(404).send("User not exist");
+//     if (userExist.length === 0) return res.status(404).send("User not exist");
 
-    if (userExist[0].paymentStatus === 1) return res.status(404).send("Payment already done");
+//     if (userExist[0].paymentStatus === 1) return res.status(404).send("Payment already done");
 
-    var txn_id = Math.round(Math.random() * (9999999999 - 1000000000) + 1000000000);
-
-
-    var data = JSON.stringify({
-        "key": process.env.PAYMENT_API,
-        "client_txn_id": txn_id.toString(),
-        "amount": "1",
-        "p_info": "Jivansathi",
-        "customer_name": userExist[0].firstname,
-        "customer_email": userExist[0].email,
-        "customer_mobile": userExist[0].phone,
-        "redirect_url": "http://jivansathi.vercel.app/api/response",
-    });
+//     var txn_id = Math.round(Math.random() * (9999999999 - 1000000000) + 1000000000);
 
 
-    var config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: 'https://api.ekqr.in/api/create_order',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        data: data
-    };
+//     var data = JSON.stringify({
+//         "key": process.env.PAYMENT_API,
+//         "client_txn_id": txn_id.toString(),
+//         "amount": "1",
+//         "p_info": "Jivansathi",
+//         "customer_name": userExist[0].firstname,
+//         "customer_email": userExist[0].email,
+//         "customer_mobile": userExist[0].phone,
+//         "redirect_url": "http://jivansathi.vercel.app/api/response",
+//     });
 
-    await queryAsync('update users set transaction_id = ?,transaction_date = NOW() where user_id = ?', [txn_id, user_id]);
 
-    axios(config)
-        .then(function (response) {
-            return res.status(200).send(response.data);
-        })
-        .catch(function (error) {
-            return res.status(500).send("Unable to create order");
-        });
+//     var config = {
+//         method: 'post',
+//         maxBodyLength: Infinity,
+//         url: 'https://api.ekqr.in/api/create_order',
+//         headers: {
+//             'Content-Type': 'application/json'
+//         },
+//         data: data
+//     };
 
-}
+//     await queryAsync('update users set transaction_id = ?,transaction_date = NOW() where user_id = ?', [txn_id, user_id]);
 
-exports.checkStatus = async (req, res, next) => {
-    const { user_id } = req.params;
+//     axios(config)
+//         .then(function (response) {
+//             return res.status(200).send(response.data);
+//         })
+//         .catch(function (error) {
+//             return res.status(500).send("Unable to create order");
+//         });
 
-    const userExist = await queryAsync('SELECT * FROM users WHERE user_id = ? LIMIT 1', [user_id]);
+// }
 
-    if (userExist.length === 0) return res.status(404).send("User not exist");
+// exports.checkStatus = async (req, res, next) => {
+//     const { user_id } = req.params;
 
-    const txn_date = userExist[0].transaction_date;
-    const date = new Date(txn_date);
+//     const userExist = await queryAsync('SELECT * FROM users WHERE user_id = ? LIMIT 1', [user_id]);
 
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
+//     if (userExist.length === 0) return res.status(404).send("User not exist");
 
-    const formattedDate = `${day.toString().padStart(2, '0')}-${month.toString().padStart(2, '0')}-${year}`;
+//     const txn_date = userExist[0].transaction_date;
+//     const date = new Date(txn_date);
 
-    var data = JSON.stringify({
-        "key": process.env.PAYMENT_API,
-        "client_txn_id": userExist[0].transaction_id,
-        "txn_date": formattedDate
-    });
+//     const year = date.getFullYear();
+//     const month = date.getMonth() + 1;
+//     const day = date.getDate();
 
-    var config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: 'https://api.ekqr.in/api/check_order_status',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        data: data
-    };
+//     const formattedDate = `${day.toString().padStart(2, '0')}-${month.toString().padStart(2, '0')}-${year}`;
 
-    axios(config)
-        .then(function (response) {
-            if (response.data.data.status === "success") {
-                queryAsync(`update users set paymentStatus = '1', upi_id = ? where user_id = ?`, [response.data.data.customer_vpa, user_id]);
-            }
-            if (response.data.data.status === "failure" || response.data.data.status === "created") {
-                return res.status(401).send("Payment has not been done yet");
-            }
-            return res.status(200).send(response.data.data.status);
-        })
-        .catch(function (error) {
-            return res.status(500).send("Unable check order status")
-        });
+//     var data = JSON.stringify({
+//         "key": process.env.PAYMENT_API,
+//         "client_txn_id": userExist[0].transaction_id,
+//         "txn_date": formattedDate
+//     });
 
-}
+//     var config = {
+//         method: 'post',
+//         maxBodyLength: Infinity,
+//         url: 'https://api.ekqr.in/api/check_order_status',
+//         headers: {
+//             'Content-Type': 'application/json'
+//         },
+//         data: data
+//     };
 
-exports.getResponse = async (req, res, next) => {
-    res.send("Thank you for visit....!!");
-}
+//     axios(config)
+//         .then(function (response) {
+//             if (response.data.data.status === "success") {
+//                 queryAsync(`update users set paymentStatus = '1', upi_id = ? where user_id = ?`, [response.data.data.customer_vpa, user_id]);
+//             }
+//             if (response.data.data.status === "failure" || response.data.data.status === "created") {
+//                 return res.status(401).send("Payment has not been done yet");
+//             }
+//             return res.status(200).send(response.data);
+//         })
+//         .catch(function (error) {
+//             return res.status(500).send("Unable check order status")
+//         });
+
+// }
+

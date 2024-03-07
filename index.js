@@ -8,13 +8,18 @@ const createUser = require('./src/tables/users.js');
 const createReferrals = require('./src/tables/referrals.js');
 const createErrorsTable = require('./src/tables/errors.js');
 const createTransactionTable = require('./src/tables/transaction.js');
+<<<<<<< HEAD
 const createPaymentsTable = require('./src/tables/payments.js');
+=======
+const createWebhookTable = require('./src/tables/webhooks.js');
+
+>>>>>>> 8bd41d2 (Changes done)
 
 const authentication = require('./src/routes/authentication.js');
 const referral = require('./src/routes/referrals.js');
 
 const corsOptions = {
-    origin: ['http://127.0.0.1:3000', 'http://localhost:3000'],
+    origin: ['http://127.0.0.1:3000', 'http://localhost:5173'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'], // Specify the allowed HTTP methods
     allowedHeaders: ['Content-Type', 'Authorization'], // Specify the allowed headers
     credentials: true, // Enable credentials (cookies, authorization headers, etc)
@@ -44,7 +49,11 @@ app.listen(PORT, () => {
     createReferrals();
     createErrorsTable();
     createTransactionTable();
+<<<<<<< HEAD
     createPaymentsTable();
 
+=======
+    createWebhookTable();
+>>>>>>> 8bd41d2 (Changes done)
 })
 
