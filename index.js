@@ -8,12 +8,7 @@ const createUser = require('./src/tables/users.js');
 const createReferrals = require('./src/tables/referrals.js');
 const createErrorsTable = require('./src/tables/errors.js');
 const createTransactionTable = require('./src/tables/transaction.js');
-<<<<<<< HEAD
 const createPaymentsTable = require('./src/tables/payments.js');
-=======
-const createWebhookTable = require('./src/tables/webhooks.js');
-
->>>>>>> 8bd41d2 (Changes done)
 
 const authentication = require('./src/routes/authentication.js');
 const referral = require('./src/routes/referrals.js');
@@ -49,11 +44,6 @@ app.listen(PORT, () => {
     createReferrals();
     createErrorsTable();
     createTransactionTable();
-<<<<<<< HEAD
     createPaymentsTable();
-
-=======
-    createWebhookTable();
->>>>>>> 8bd41d2 (Changes done)
 })
 

@@ -4,19 +4,23 @@ const axios = require("axios");
 
 const queryAsync = promisify(db.query).bind(db);
 
-exports.accessPaymentDetails = async (req,res,next) => {
+exports.accessPaymentDetails = async (req, res, next) => {
     try {
         const { name, transaction_id, from_upi } = req.body;
         const { user_id } = req.params;
 
+        const userExist = await queryAsync('SELECT * FROM users WHERE user_id = ? and paymentStatus = 1 LIMIT 1', [user_id]);
+
+        if (userExist.length !== 0) return res.status(404).send("Payment already done");
+
         if (!name) {
             return res.status(400).json({ error: "Please enter name." });
         }
-        if(!transaction_id) {
-            return res.status(400).json({ error: "Please enter transaction id." });    
+        if (!transaction_id) {
+            return res.status(400).json({ error: "Please enter transaction id." });
         }
-        if(!from_upi) {
-            return res.status(400).json({ error: "Please enter from UPI." });    
+        if (!from_upi) {
+            return res.status(400).json({ error: "Please enter from UPI." });
         }
         const checkExistingTransaction = "SELECT * FROM payments WHERE upi_transaction_id LIKE ?";
         const isTransactionExist = await queryAsync(checkExistingTransaction, [transaction_id]);
@@ -27,15 +31,66 @@ exports.accessPaymentDetails = async (req,res,next) => {
         const insertUserQuery = "INSERT INTO payments (user_id, payor_name, upi_transaction_id, from_upi_id) VALUES (?, ?, ?, ?)";
         const result = await queryAsync(insertUserQuery, [user_id, name, transaction_id, from_upi]);
 
-        return res.status(200).json("Payment Details Recorded 1.");        
         const updatePaymentStatus = "UPDATE users SET paymentStatus = 0 WHERE user_id = ?";
         const resultUpdate = await queryAsync(updatePaymentStatus, [user_id]);
 
-        return res.status(200).json("Payment Details Recorded.");
+        return res.status(200).json("Payment Details Recorded 1.");
     }
     catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal Server Error' });
+    }
+}
+
+exports.acceptPayment = async (req, res, next) => {
+    try {
+
+        const { user_id } = req.params;
+
+        const userExist = await queryAsync('SELECT * FROM users WHERE user_id = ? LIMIT 1', [user_id]);
+
+        if (userExist.length === 0) return res.status(404).send("User not exist");
+
+        const updateStatus = await queryAsync(`UPDATE users SET paymentStatus = '1' WHERE user_id = ?`, [user_id]);
+
+        const deleteUser = await queryAsync('DELETE FROM payments WHERE user_id = ?', [user_id]);
+
+        return res.status(200).json("Accepted");
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+}
+
+exports.rejectPayment = async (req, res, next) => {
+    try {
+
+        const { user_id } = req.params;
+
+        const userExist = await queryAsync('SELECT * FROM users WHERE user_id = ? LIMIT 1', [user_id]);
+
+        if (userExist.length === 0) return res.status(404).send("User not exist");
+
+        const updateStatus = await queryAsync(`UPDATE users SET paymentStatus = '-1' WHERE user_id = ?`, [user_id]);
+
+        const deleteUser = await queryAsync('DELETE FROM payments WHERE user_id = ?', [user_id]);
+
+        return res.status(200).json("Rejected");
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+}
+
+exports.getRequests = async (req, res, next) => {
+    try {
+        const data = await queryAsync('select * from payments');
+        return res.status(200).json(data);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Internal Server Error' });
     }
 }
 

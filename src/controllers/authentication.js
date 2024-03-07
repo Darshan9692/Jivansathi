@@ -82,11 +82,7 @@ exports.getSingleUser = async (req, res, next) => {
 
 exports.getAllUsers = async (req,res,next) => {
     try {
-<<<<<<< HEAD
-        const sql = "SELECT user_id, firstname, lastname,phone, email,gender, code,current_level,followers_count, paymentStatus FROM users";
-=======
         const sql = "SELECT * FROM users";
->>>>>>> 8bd41d2 (Changes done)
         const result = await queryAsync(sql);
         if(result.length <= 0) {
             return res.status(400).json({message: "No User Exists."});
@@ -230,7 +226,3 @@ exports.generateOtp = async (req, res, next) => {
         res.status(500).json({ error: "Failed to send OTP" });
     }
 };
-<<<<<<< HEAD
-=======
-
->>>>>>> 8bd41d2 (Changes done)
