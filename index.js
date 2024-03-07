@@ -14,7 +14,7 @@ const authentication = require('./src/routes/authentication.js');
 const referral = require('./src/routes/referrals.js');
 
 const corsOptions = {
-    origin: ['http://localhost:5173','https://jivansathi-admin-panel-one.vercel.app'],
+    origin: ['https://jivansathi-admin-panel-one.vercel.app','http://localhost:5173'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'], // Specify the allowed HTTP methods
     allowedHeaders: ['Content-Type', 'Authorization'], // Specify the allowed headers
     credentials: true, // Enable credentials (cookies, authorization headers, etc)
