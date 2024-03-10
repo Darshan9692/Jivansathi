@@ -1,9 +1,63 @@
 const { error } = require('console');
 const db = require('../config/connection.js');
 const unirest = require("unirest");
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const { promisify } = require('util');
 const queryAsync = promisify(db.query).bind(db);
+
+exports.loginUser = async (req, res, next) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(401).json("Please enter email and password", 400);
+    }
+
+    try {
+        const [result] = await queryAsync('SELECT * FROM admin WHERE email = ?', [email]);
+
+        if (!result) {
+            return res.status(401).json("Invalid email or password", 401);
+        }
+
+        const user = result;
+        const storedPasswordHash = user.password;
+
+        const isPasswordMatched = await bcrypt.compare(password, storedPasswordHash);
+
+        if (!isPasswordMatched) {
+            return res.status(401).json("Invalid email or password", 401);
+        }
+
+        const token = jwt.sign({ userId: user.user_id, email: user.email, role: user.role }, process.env.JWT_SECRET, {
+            expiresIn: process.env.JWT_EXPIRE
+        });
+
+        const options = {
+            expires: new Date(Date.now() + process.env.COOKIE_EXPIRE * 24 * 60 * 60 * 1000),
+            httpOnly: true
+        };
+
+        return res.status(200).cookie("tokenjwt", token, options).json({ message: "User logged in successfully", user, token });
+    } catch (err) {
+        console.error(err);
+        return res.status(401).json("Invalid email or password", 401);
+    }
+};
+
+exports.logout = async (req, res, next) => {
+    res.cookie("tokenjwt", null, {
+        httponly: true,
+        expires: new Date(Date.now()),
+        path: "/"
+    });
+
+    res.status(200).json({
+        success: true,
+        message: "Logged out"
+    });
+};
 
 // Register a user
 exports.profile = async (req, res, next) => {

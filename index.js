@@ -4,11 +4,14 @@ const app = express();
 require('dotenv').config();
 const PORT = process.env.PORT || 3000;
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const createUser = require('./src/tables/users.js');
 const createReferrals = require('./src/tables/referrals.js');
 const createErrorsTable = require('./src/tables/errors.js');
 const createTransactionTable = require('./src/tables/transaction.js');
 const createPaymentsTable = require('./src/tables/payments.js');
+const createAdminTable = require('./src/tables/admin.js');
+
 
 const authentication = require('./src/routes/authentication.js');
 const referral = require('./src/routes/referrals.js');
@@ -21,7 +24,8 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
+app.use(cookieParser());
+app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
@@ -45,5 +49,6 @@ app.listen(PORT, () => {
     createErrorsTable();
     createTransactionTable();
     createPaymentsTable();
+    createAdminTable();
 })
 
